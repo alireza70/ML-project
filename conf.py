@@ -5,6 +5,6 @@ Created on Nov 6, 2014
 '''
 
 class MATRIX_FAC:
-    LAMBDA = 0.2
-    ALPHA = 0.002
-    NSTEP = 5 
+    LAMBDA = 0.02
+    ALPHA = 0.0002
+    NSTEP = 5000 
