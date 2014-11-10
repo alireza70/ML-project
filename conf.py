@@ -1,7 +1,8 @@
 class DATASET:
     class TRAINING:
         USERS = 480189
-        MOVIES = 17770
+        MOVIES_START = 15000
+        MOVIES_END = 17770
 
 class FILES:
     RATINGS = 'data/ratings.mtx'

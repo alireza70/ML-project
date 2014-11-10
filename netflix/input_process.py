@@ -13,7 +13,11 @@ def get_index(uid, uid2index, index2uid):
         res = len(index2uid) - 1
     return res
 
-def get_user_item_matrix(directory, users, movies):
+def get_user_item_matrix(directory):
+    users = conf.DATASET.TRAINING.USERS
+    movies = conf.DATASET.TRAINING.MOVIES_END\
+     - conf.DATASET.TRAINING.MOVIES_START
+
     uid2index = {}
     index2uid = []
     R = sp.dok_matrix( (users, movies) )
@@ -22,29 +26,33 @@ def get_user_item_matrix(directory, users, movies):
     for file in os.listdir(directory):
         if not file.endswith(".txt"):
             continue
+
         print file
-        ratings = np.array(open(directory + "/" + file).read().splitlines())
-        movie = int( ratings[0][:-1] ) - 1
-        print movie
-        if movie >= movies:
-            break
-        for rating in ratings[1:]:
-            uid, r, date = rating.split(',')
+        movie = int( file[3:-4] ) -1
+        if movie < conf.DATASET.TRAINING.MOVIES_START\
+         or movie >= conf.DATASET.TRAINING.MOVIES_END:
+            continue
 
-            uid = get_index( int(uid), uid2index, index2uid)
-            r = int(r)
-            date = dt.strptime(date, "%Y-%m-%d")
+        with open(directory + "/" + file) as f:
+            movie = int( f.readline()[:-2] ) - 1 - conf.DATASET.TRAINING.MOVIES_START
+            print movie
+            for rating in f:
+                uid, r, date = rating[:-1].split(',')
 
-            epoch = dt.utcfromtimestamp(0)
-            date = int( (date - epoch).days )
+                uid = get_index( int(uid), uid2index, index2uid)
+                r = int(r)
+                date = dt.strptime(date, "%Y-%m-%d")
 
-            if uid < users:
-                R[uid, movie] = r
-                D[uid, movie] = date
+                epoch = dt.utcfromtimestamp(0)
+                date = int( (date - epoch).days )
+
+                if uid < users:
+                    R[uid, movie] = r
+                    D[uid, movie] = date
     return sp.csr_matrix(R), sp.csr_matrix(D), index2uid
 
-def save_user_item_matrix(directory, users, movies):
-    R, D, uid = get_user_item_matrix(directory, users, movies)
+def save_user_item_matrix(directory):
+    R, D, uid = get_user_item_matrix(directory)
     io.mmwrite(conf.FILES.RATINGS, R, field = 'integer')
     io.mmwrite(conf.FILES.DATES, D, field = 'integer')
     np.save(conf.FILES.UID, uid)
