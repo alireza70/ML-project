@@ -10,6 +10,10 @@ Created on Nov 6, 2014
 #
 # An implementation of matrix factorization
 #
+<<<<<<< HEAD
+=======
+import copy
+>>>>>>> e58b2ccbfa95ff810de84ef5cfc1b50702347e1b
 try:
     import numpy as np
     import scipy.sparse as sp
@@ -35,6 +39,7 @@ def matrix_factorization(X, P, Q, K):
     ''' X is a sparse matrix '''
     mf = CF.MATRIX_FAC()
     SX= sp.coo_matrix(X)
+<<<<<<< HEAD
     
     for iteration in range(mf.NSTEP):
         for k in range(K):
@@ -42,6 +47,32 @@ def matrix_factorization(X, P, Q, K):
                 eij = v -P[i,:].dot(Q[:,j])
                 P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[k][j] - mf.LAMBDA * P[i,k])
                 Q[k,j] = Q[k,j] + mf.ALPHA * (2 * eij * P[i][k] - mf.LAMBDA * Q[k,j])
+=======
+    Temp = copy.deepcopy(X)
+    ST = sp.coo_matrix(Temp)
+    
+    '''
+    for iteration in range(mf.NSTEP):
+        for i,j,v in zip(SX.row, SX.col, SX.data):
+            for k in range(K):
+                eij = v - P[i,:].dot(Q[j,:].T)
+                P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[j,k] - mf.LAMBDA * P[i,k])
+                Q[j,k] = Q[j,k] + mf.ALPHA * (2 * eij * P[i,k] - mf.LAMBDA * Q[j,k])
+                 
+    '''
+    for k in range(K):
+        # impact of previous features
+        for i,j,v in zip(ST.row, ST.col, ST.data):
+            Temp[i,j] = P[i,:].dot(Q[j,:].T)
+        
+        for iteration in range(mf.NSTEP):
+            
+            for i,j,v in zip(SX.row, SX.col, SX.data):
+                eij = v - Temp[i,j] - P[i,k]*Q[j,k]
+                
+                P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[j,k] - mf.LAMBDA * P[i,k])
+                Q[j,k] = Q[j,k] + mf.ALPHA * (2 * eij * P[i,k] - mf.LAMBDA * Q[j,k])
+>>>>>>> e58b2ccbfa95ff810de84ef5cfc1b50702347e1b
                  
     return P,Q
 
@@ -61,8 +92,13 @@ if __name__ == "__main__":
     N,M = X.shape
     K = 2
 
+<<<<<<< HEAD
     P = np.random.rand(N,K)
     Q = np.random.rand(M,K)
+=======
+    P = np.zeros((N,K))+0.1
+    Q = np.zeros((M,K))+0.1
+>>>>>>> e58b2ccbfa95ff810de84ef5cfc1b50702347e1b
 
     nP, nQ = matrix_factorization(X, P, Q, K)
     print nP.dot(nQ.T)
