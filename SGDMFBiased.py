@@ -1,15 +1,11 @@
 '''
-Created on Nov 6, 2014
+Created on Nov 10, 2014
 
 @author: areza_000
 '''
 
-#!/usr/bin/python
-#
-# Created by Albert Au Yeung (2010)
-#
-# An implementation of matrix factorization
-#
+
+from __future__ import division
 import copy
 try:
     import numpy as np
@@ -18,6 +14,8 @@ except:
     print "This implementation requires the numpy and scipy modules."
     exit(0)
 import conf as CF
+
+import Utility as UL
 ###############################################################################
 
 """
@@ -32,7 +30,7 @@ import conf as CF
 @OUTPUT:
     the final matrices P and Q
 """
-def matrix_factorization(X, P, Q, K):
+def matrix_factorization(X, P, Q,BU , BI , ave_rate, K):
     ''' X is a sparse matrix '''
     mf = CF.MATRIX_FAC()
     SX= sp.coo_matrix(X)
@@ -60,12 +58,16 @@ def matrix_factorization(X, P, Q, K):
         for iteration in range(mf.NSTEP):
             
             for i,j,v in zip(SX.row, SX.col, SX.data):
-                eij = v - Temp[i,j] - P[i,k]*Q[j,k]
+                eij = v - Temp[i,j] - P[i,k]*Q[j,k] - BU[i,0] - BI[j,0] - ave_rate
+                
+                ave_rate = ave_rate + mf.ALPHA * ( 2 * eij )
+                BU[i,0] = BU[i,0] + mf.ALPHA * ( 2 *  eij - mf.LAMBDA * BU[i,0] )  
+                BI[j,0] = BI[j,0] + mf.ALPHA * ( 2 * eij  - mf.LAMBDA * BI[j,0] )
                 
                 P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[j,k] - mf.LAMBDA * P[i,k])
                 Q[j,k] = Q[j,k] + mf.ALPHA * (2 * eij * P[i,k] - mf.LAMBDA * Q[j,k])
                  
-    return P,Q
+    return P,Q,BU,BI,ave_rate
 
 ###############################################################################
 
@@ -81,10 +83,22 @@ if __name__ == "__main__":
     X= sp.csc_matrix(X)
 
     N,M = X.shape
-    K = 2
+    mf = CF.MATRIX_FAC()
+    K = mf.K
 
     P = np.zeros((N,K))+0.1
     Q = np.zeros((M,K))+0.1
+    BU = np.zeros ((N,1))
+    BI = np.zeros ((M,1))
+    ave_rate = 0;
+    
+    nP, nQ,BU,BI,ave_rate = matrix_factorization(X, P, Q, BU, BI , ave_rate ,  K)
+    
+    Whole_BU = BU*np.ones((1,M))
+    Whole_BI = np.ones ((N,1)) * BI.T 
+    
+    #print nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU 
 
-    nP, nQ = matrix_factorization(X, P, Q, K)
-    print nP.dot(nQ.T)
+    #print ave_rate , BU , BI
+    
+    #print UL.Compute_RMSE(X, nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU) 
