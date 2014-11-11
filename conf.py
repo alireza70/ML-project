@@ -15,8 +15,9 @@ class MATRIX_FAC:
     NSTEP = 5000
 
 class TEMPORAL_DYNAMICS:
-    RANK = 2
-    NSTEP = 500
+    RANK = 250
+    NSTEP = 20
     BETA = 0.4
     LAMBDA = 0.01
     BINS_COUNT = 1
+    ETA = 0.001

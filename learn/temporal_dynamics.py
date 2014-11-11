@@ -7,13 +7,13 @@ class TemporalDynamicsParams:
     def __init__(self, users, items, f):
         self.cnt = 0
         self.mu = 0
-        self.b_u = sp.csc_matrix((users, 1))
-        self.b_i = sp.csc_matrix((items, 1))
-        self.b_iBin = sp.csc_matrix((items, conf.TEMPORAL_DYNAMICS.BINS_COUNT))
-        self.q_i = sp.csc_matrix((items, f))
-        self.p_u = sp.csc_matrix((users, f))
-        self.ap_u = sp.csc_matrix((users, f))
-        self.a_u = sp.csc_matrix((users, 1))
+        self.b_u = sp.lil_matrix((users, 1))
+        self.b_i = sp.lil_matrix((items, 1))
+        self.b_iBin = sp.lil_matrix((items, conf.TEMPORAL_DYNAMICS.BINS_COUNT))
+        self.q_i = sp.lil_matrix((items, f))
+        self.p_u = sp.lil_matrix((users, f))
+        self.ap_u = sp.lil_matrix((users, f))
+        self.a_u = sp.lil_matrix((users, 1))
         self.t_u = np.zeros((users, 1))
 
     def dev(self, u, t):
@@ -26,6 +26,9 @@ class TemporalDynamicsParams:
             (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T ).todense())
 
     def update(self, u, i, r, t, eta, lmbd):
+        if self.cnt % 1000 == 0:
+            print "Updaing on point ", self.cnt
+        self.cnt += 1
         error = (r - self.value(u,i,t))
         pref = self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)
 
@@ -48,16 +51,18 @@ def learn_model(R, T, eta, params = None):
     if params is None:
         params = TemporalDynamicsParams(users, items, conf.TEMPORAL_DYNAMICS.RANK)
 
-    for u in range(0,users):
-        params.t_u[u] = T[u,:].data.mean()
+    Tcsr = sp.csr_matrix(T)
 
-    tt = T
-    R = sp.coo_matrix(R)
-    T = sp.coo_matrix(T)
+    for u in range(0,users):
+        params.t_u[u] = Tcsr[u,:].data.mean()
+        if np.isnan(params.t_u[u]):
+            params.t_u[u] = 0
 
     import sys
     for _ in range(0, conf.TEMPORAL_DYNAMICS.NSTEP):
+        print "ITERATION ", _
         for u, i, r, t in zip(R.row, R.col, R.data, T.data):
             params.update(u, i, r, t, eta, conf.TEMPORAL_DYNAMICS.LAMBDA)
+        params.cnt = 0
 
     return params
