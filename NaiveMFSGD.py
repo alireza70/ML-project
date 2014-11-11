@@ -36,11 +36,22 @@ def matrix_factorization(X, P, Q, K):
     ''' X is a sparse matrix '''
     mf = CF.MATRIX_FAC()
     SX= sp.coo_matrix(X)
+
     
     Temp = sp.lil_matrix(X.shape)
     print Temp
     #ST = sp.coo_matrix(Temp)
     
+
+    for iteration in range(mf.NSTEP):
+        for k in range(K):
+            for i,j,v in zip(SX.row, SX.col, SX.data):
+                eij = v -P[i,:].dot(Q[:,j])
+                P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[k][j] - mf.LAMBDA * P[i,k])
+                Q[k,j] = Q[k,j] + mf.ALPHA * (2 * eij * P[i][k] - mf.LAMBDA * Q[k,j])
+    Temp = copy.deepcopy(X)
+    ST = sp.coo_matrix(Temp)
+
     '''
     for iteration in range(mf.NSTEP):
         for i,j,v in zip(SX.row, SX.col, SX.data):
@@ -48,23 +59,26 @@ def matrix_factorization(X, P, Q, K):
                 eij = v - P[i,:].dot(Q[j,:].T)
                 P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[j,k] - mf.LAMBDA * P[i,k])
                 Q[j,k] = Q[j,k] + mf.ALPHA * (2 * eij * P[i,k] - mf.LAMBDA * Q[j,k])
-                 
+
     '''
     for k in range(K):
         # impact of previous features
         Temp = P.dot(Q.T)
         #for i,j,v in zip(SX.row, SX.col, SX.data):
         #    Temp[i,j] = P[i,:].dot(Q[j,:].T)
-        print Temp
+        #print Temp
         
+        for i,j,v in zip(ST.row, ST.col, ST.data):
+            Temp[i,j] = P[i,:].dot(Q[j,:].T)
+
         for iteration in range(mf.NSTEP):
-            
+
             for i,j,v in zip(SX.row, SX.col, SX.data):
                 eij = v - Temp[i,j] - P[i,k]*Q[j,k]
-                
+
                 P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[j,k] - mf.LAMBDA * P[i,k])
                 Q[j,k] = Q[j,k] + mf.ALPHA * (2 * eij * P[i,k] - mf.LAMBDA * Q[j,k])
-                 
+
     return P,Q
 
 ###############################################################################
