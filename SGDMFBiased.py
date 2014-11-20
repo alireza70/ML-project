@@ -37,6 +37,7 @@ def matrix_factorization(Train_Data, P, Q,BU , BI , ave_rate, K):
     '''
         
     for iteration in range(mf.NSTEP):
+            print "iteration : ", iteration
             for i,j,v in Train_Data:
                 eij = v - P[i,:].dot(Q[j,:].T) - BU[i,0] - BI[j,0] - ave_rate
                 ave_rate = ave_rate + mf.ALPHA * ( 2 * eij )
@@ -48,8 +49,8 @@ def matrix_factorization(Train_Data, P, Q,BU , BI , ave_rate, K):
 
 import scipy.io as io
 
-if __name__ == "__main__":
-    X = [ 
+def Learn (Train_Data,N,M):
+    ''''X = [ 
          [4,2,3,4],
          [3,1,0,2],
          [4,2,4,0],
@@ -61,8 +62,8 @@ if __name__ == "__main__":
     Train_Data = []
     for i,j,v in zip(X.row,X.col,X.data):
         Train_Data.append((i,j,v))
-    
-    N,M = X.shape
+    '''
+    #N,M = X.shape
     mf = CF.MATRIX_FAC()
     K = mf.K
 
@@ -71,19 +72,27 @@ if __name__ == "__main__":
     BU = np.zeros ((N,1))
     BI = np.zeros ((M,1))
     ave_rate = 0;
+    print "Start to Learn"
     nP, nQ,BU,BI,ave_rate = matrix_factorization(Train_Data, P, Q, BU, BI , ave_rate ,  K)
     
-    Whole_BU = BU*np.ones((1,M))
-    Whole_BI = np.ones ((N,1)) * BI.T 
+    np.save("userMat",nP)
+    np.save("MovieMat",nQ)
+    np.save("UserBias",BU)
+    np.save("MovieBias",BI)
+    np.save("average",ave_rate)
+    
+    #Whole_BU = BU*np.ones((1,N))
+    #Whole_BI = np.ones ((M,1)) * BI.T 
     
 
-    RR = nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU
-    print RR
+    #RR = nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU
+    #print RR
     
     rmse = 0
-    for u, i, r in zip(X.row, X.col, X.data):
-        rmse += np.power(RR[u,i] - r, 2)
-    rmse /= len(X.data)
+    
+    for u, i, r in Train_Data:
+        rmse += (float(nP[u,:].dot(nQ[i,:].T)+ave_rate+BU[u,0]+BI[i,0]-r))**2
+    rmse /= len(Train_Data)
     rmse = np.sqrt(rmse)
 
     print "RMSE=", rmse
