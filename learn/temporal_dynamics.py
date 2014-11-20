@@ -43,6 +43,7 @@ class TemporalDynamicsParams:
 
         self.cnt += 1
         error = (r - self.value(u,i,t))
+        print "ERROR", error
         pref = self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)
 
         self.mu += eta * (-2 * error)

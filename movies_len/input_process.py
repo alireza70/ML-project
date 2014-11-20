@@ -6,11 +6,11 @@ def get_ratings(filePath):
 
     with open(filePath) as f:
         for rating in f:
-            u, r, i, t = rating[:-1].split('\t')
+            u, i, r, t = rating[:-1].split('\t')
 
             u = int(u)-1
-            r = int(r)-1
-            i = int(i)
+            i = int(i)-1
+            r = int(r)
             t = int(t)
 
             yield u, i, r, t
