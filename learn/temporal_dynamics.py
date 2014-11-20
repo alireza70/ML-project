@@ -4,16 +4,18 @@ import conf
 def get_bin(t):
     return 0
 class TemporalDynamicsParams:
-    def __init__(self, users, items, f):
+    def __init__(self, users = None, items = None, f = None):
+        if f is None:
+            return
         self.cnt = 0
         self.mu = 0
-        self.b_u = sp.csc_matrix((users, 1))
-        self.b_i = sp.csc_matrix((items, 1))
-        self.b_iBin = sp.csc_matrix((items, conf.TEMPORAL_DYNAMICS.BINS_COUNT))
-        self.q_i = sp.csc_matrix((items, f))
-        self.p_u = sp.csc_matrix((users, f))
-        self.ap_u = sp.csc_matrix((users, f))
-        self.a_u = sp.csc_matrix((users, 1))
+        self.b_u = np.zeros((users, 1))
+        self.b_i = np.zeros((items, 1))
+        self.b_iBin = np.zeros((items, conf.TEMPORAL_DYNAMICS.BINS_COUNT))
+        self.q_i = np.zeros((items, f))
+        self.p_u = np.zeros((users, f))
+        self.ap_u = np.zeros((users, f))
+        self.a_u = np.zeros((users, 1))
         self.t_u = np.zeros((users, 1))
 
     def dev(self, u, t):
@@ -21,43 +23,88 @@ class TemporalDynamicsParams:
             conf.TEMPORAL_DYNAMICS.BETA))
 
     def value(self, u, i, t):
+        print self.mu
+        print self.b_u[u,0]
+        print self.a_u[u,0]*self.dev(u,t)
+        print self.b_i[i,0]
+        print self.b_iBin[i,get_bin(t)]
+        print ( self.q_i[i,:].dot( \
+        (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T ))
+        print
         return float(self.mu + self.b_u[u,0] + self.a_u[u,0]*self.dev(u,t)\
-            + self.b_i[i,0] + self.b_iBin[i,get_bin(t)] + ( self.q_i[i,:] * \
-            (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T ).todense())
+            + self.b_i[i,0] + self.b_iBin[i,get_bin(t)] + ( self.q_i[i,:].dot( \
+            (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T )) )
 
     def update(self, u, i, r, t, eta, lmbd):
+        if np.isnan(self.mu):
+            return
+        if self.cnt % 1000 == 0:
+            print "ON DATAPOINT ", self.cnt
+
+        self.cnt += 1
         error = (r - self.value(u,i,t))
+        print "ERROR", error
         pref = self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)
 
-        self.mu -= eta * (-2 * error)
-        self.b_u[u,0] -= eta * (-2 * error + 2 * lmbd * self.b_u[u,0])
-        self.b_i[i,0] -= eta * (-2 * error + 2 * lmbd * self.b_i[i,0])
-        self.b_iBin[i,get_bin(t)] -= eta * (-2 * error + 2 * lmbd\
+        self.mu += eta * (-2 * error)
+        self.b_u[u,0] += eta * (-2 * error + 2 * lmbd * self.b_u[u,0])
+        self.b_i[i,0] += eta * (-2 * error + 2 * lmbd * self.b_i[i,0])
+        self.b_iBin[i,get_bin(t)] += eta * (-2 * error + 2 * lmbd\
             * self.b_iBin[i,get_bin(t)])
-        self.a_u[u,0] -= eta * (-2 * error * self.dev(u,t) + 2 * lmbd\
+        self.a_u[u,0] += eta * (-2 * error * self.dev(u,t) + 2 * lmbd\
             * self.a_u[u,0])
-        self.p_u[u,:] = self.p_u[u,:] - eta * (-2 * error * self.q_i[i,:] + 2 * lmbd * self.p_u[u,:])
-        self.ap_u[u,:] = self.ap_u[u,:] - eta * (-2 * error * self.q_i[i,:] * self.dev(u,t) + 2 * lmbd\
+
+        self.p_u[u,:] += eta * (-2 * error * self.q_i[i,:] + 2 * lmbd * self.p_u[u,:])
+        self.ap_u[u,:] += eta * (-2 * error * self.q_i[i,:] * self.dev(u,t) + 2 * lmbd\
             * self.p_u[u,:])
-        self.q_i[i,:] = self.q_i[i,:] - eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
+        self.q_i[i,:] += eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
+
+    def save(self):
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.MU, self.mu)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.B_U, self.b_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.B_I, self.b_i)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.B_IBIN, self.b_iBin)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.Q_I, self.q_i)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.P_U, self.p_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.AP_U, self.ap_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.A_U, self.a_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.T_U, self.t_u)
+
+    def load(self):
+        self.mu = np.load(conf.TEMPORAL_DYNAMICS.FILES.MU)
+        self.b_u = np.load(conf.TEMPORAL_DYNAMICS.FILES.B_U)
+        self.b_i = np.load(conf.TEMPORAL_DYNAMICS.FILES.B_I)
+        self.b_iBin = np.load(conf.TEMPORAL_DYNAMICS.FILES.B_IBIN)
+        self.q_i = np.load(conf.TEMPORAL_DYNAMICS.FILES.Q_I)
+        self.p_u = np.load(conf.TEMPORAL_DYNAMICS.FILES.P_U)
+        self.ap_u = np.load(conf.TEMPORAL_DYNAMICS.FILES.AP_U)
+        self.a_u = np.load(conf.TEMPORAL_DYNAMICS.FILES.A_U)
+        self.t_u = np.load(conf.TEMPORAL_DYNAMICS.FILES.T_U)
 
 
-
-def learn_model(R, T, eta, params = None):
-    users, items = R.shape
+def learn_model(ratings, eta, users, items, params = None):
     if params is None:
         params = TemporalDynamicsParams(users, items, conf.TEMPORAL_DYNAMICS.RANK)
 
-    for u in range(0,users):
-        params.t_u[u] = T[u,:].data.mean()
+    print "INITIALIZING TIMES"
+    cnt = 0
+    rates = np.zeros(users)
+    for u, i, r, t in ratings:
+        cnt += 1
+        if cnt%1000 == 0:
+            print "ON DATAPOINT", cnt
+        params.t_u[u] += t
+        rates[u] += 1
 
-    tt = T
-    R = sp.coo_matrix(R)
-    T = sp.coo_matrix(T)
+    for u in range(users):
+        params.t_u[u] = 0 if rates[u] == 0 else params.t_u[u] / rates[u]
 
+    print "LEARNING PARAMETERS"
     import sys
     for _ in range(0, conf.TEMPORAL_DYNAMICS.NSTEP):
-        for u, i, r, t in zip(R.row, R.col, R.data, T.data):
+        print "ITERATION ", _
+        for u, i, r, t in ratings:
             params.update(u, i, r, t, eta, conf.TEMPORAL_DYNAMICS.LAMBDA)
+        params.cnt = 0
 
     return params

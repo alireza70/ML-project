@@ -1,20 +1,8 @@
-'''
-Created on Nov 10, 2014
-
-@author: areza_000
-'''
-
 
 from __future__ import division
-import copy
-try:
-    import numpy as np
-    import scipy.sparse as sp
-except:
-    print "This implementation requires the numpy and scipy modules."
-    exit(0)
+import numpy as np
+import scipy.sparse as sp
 import conf as CF
-
 import Utility as UL
 ###############################################################################
 
@@ -52,15 +40,13 @@ def matrix_factorization(Train_Data, P, Q,BU , BI , ave_rate, K):
             for i,j,v in Train_Data:
                 eij = v - P[i,:].dot(Q[j,:].T) - BU[i,0] - BI[j,0] - ave_rate
                 ave_rate = ave_rate + mf.ALPHA * ( 2 * eij )
-                BU[i,0] = BU[i,0] + mf.ALPHA * ( 2 *  eij - mf.LAMBDA * BU[i,0] )  
+                BU[i,0] = BU[i,0] + mf.ALPHA * ( 2 *  eij - mf.LAMBDA * BU[i,0] )
                 BI[j,0] = BI[j,0] + mf.ALPHA * ( 2 * eij  - mf.LAMBDA * BI[j,0] )
-                
                 P[i,:] = P[i,:] + mf.ALPHA * (2 * eij * Q[j,:] - mf.LAMBDA * P[i,:])
                 Q[j,:] = Q[j,:] + mf.ALPHA * (2 * eij * P[i,:] - mf.LAMBDA * Q[j,:])
-                 
     return P,Q,BU,BI,ave_rate
 
-###############################################################################
+import scipy.io as io
 
 if __name__ == "__main__":
     X = [ 
@@ -76,7 +62,6 @@ if __name__ == "__main__":
     for i,j,v in zip(X.row,X.col,X.data):
         Train_Data.append((i,j,v))
     
-
     N,M = X.shape
     mf = CF.MATRIX_FAC()
     K = mf.K
@@ -86,13 +71,19 @@ if __name__ == "__main__":
     BU = np.zeros ((N,1))
     BI = np.zeros ((M,1))
     ave_rate = 0;
-    
     nP, nQ,BU,BI,ave_rate = matrix_factorization(Train_Data, P, Q, BU, BI , ave_rate ,  K)
     
     Whole_BU = BU*np.ones((1,M))
     Whole_BI = np.ones ((N,1)) * BI.T 
     
-    print nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU 
 
+    RR = nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU
+    print RR
     
-    #print UL.Compute_RMSE(X, nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU) 
+    rmse = 0
+    for u, i, r in zip(X.row, X.col, X.data):
+        rmse += np.power(RR[u,i] - r, 2)
+    rmse /= len(X.data)
+    rmse = np.sqrt(rmse)
+
+    print "RMSE=", rmse
