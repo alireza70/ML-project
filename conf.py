@@ -11,9 +11,9 @@ class FILES:
 
 class MATRIX_FAC:
     LAMBDA = 0.02
-    ALPHA = 0.0002
+    ALPHA = 0.002
     NSTEP = 1000
-    K = 250 
+    K = 2 
     
 class BASE_NEIGHBOURHOOD:
     LAMBDA2 = 100
