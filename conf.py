@@ -39,7 +39,7 @@ class BASELINE:
 class TEMPORAL_DYNAMICS:
     RANK = 250
     NSTEP = 20
-    BETA = 0.4
+    BETA = 0.2
     LAMBDA = 0.01
     BINS_COUNT = 1
     ETA = 0.001

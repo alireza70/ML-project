@@ -19,18 +19,18 @@ class TemporalDynamicsParams:
         self.t_u = np.zeros((users, 1))
 
     def dev(self, u, t):
-        return float(np.sign(self.t_u[u] - t) * np.power(np.abs(self.t_u[u] - t),\
-            conf.TEMPORAL_DYNAMICS.BETA))
+        return float(np.sign(self.t_u[u] - t) * np.power(np.abs(self.t_u[u] - t)/\
+        86400, conf.TEMPORAL_DYNAMICS.BETA))
 
     def value(self, u, i, t):
-        print self.mu
-        print self.b_u[u,0]
-        print self.a_u[u,0]*self.dev(u,t)
-        print self.b_i[i,0]
-        print self.b_iBin[i,get_bin(t)]
-        print ( self.q_i[i,:].dot( \
-        (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T ))
-        print
+        # print self.mu
+        # print self.b_u[u,0]
+        # print self.a_u[u,0]*self.dev(u,t)
+        # print self.b_i[i,0]
+        # print self.b_iBin[i,get_bin(t)]
+        # print ( self.q_i[i,:].dot( \
+        # (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T ))
+        # print
         return float(self.mu + self.b_u[u,0] + self.a_u[u,0]*self.dev(u,t)\
             + self.b_i[i,0] + self.b_iBin[i,get_bin(t)] + ( self.q_i[i,:].dot( \
             (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T )) )
@@ -38,26 +38,27 @@ class TemporalDynamicsParams:
     def update(self, u, i, r, t, eta, lmbd):
         if np.isnan(self.mu):
             return
-        if self.cnt % 1000 == 0:
-            print "ON DATAPOINT ", self.cnt
-
-        self.cnt += 1
         error = (r - self.value(u,i,t))
-        print "ERROR", error
+        if self.cnt % 1000 == 0:
+            print "ON DATAPOINT", self.cnt
+            print "ERROR", error
+        self.cnt += 1
+        # print "ERROR", error
+        # print "R", r
         pref = self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)
 
-        self.mu += eta * (-2 * error)
-        self.b_u[u,0] += eta * (-2 * error + 2 * lmbd * self.b_u[u,0])
-        self.b_i[i,0] += eta * (-2 * error + 2 * lmbd * self.b_i[i,0])
-        self.b_iBin[i,get_bin(t)] += eta * (-2 * error + 2 * lmbd\
+        self.mu -= eta * (-2 * error)
+        self.b_u[u,0] -= eta * (-2 * error + 2 * lmbd * self.b_u[u,0])
+        self.b_i[i,0] -= eta * (-2 * error + 2 * lmbd * self.b_i[i,0])
+        self.b_iBin[i,get_bin(t)] -= eta * (-2 * error + 2 * lmbd\
             * self.b_iBin[i,get_bin(t)])
-        self.a_u[u,0] += eta * (-2 * error * self.dev(u,t) + 2 * lmbd\
+        self.a_u[u,0] -= eta * (-2 * error * self.dev(u,t) + 2 * lmbd\
             * self.a_u[u,0])
 
-        self.p_u[u,:] += eta * (-2 * error * self.q_i[i,:] + 2 * lmbd * self.p_u[u,:])
-        self.ap_u[u,:] += eta * (-2 * error * self.q_i[i,:] * self.dev(u,t) + 2 * lmbd\
+        self.p_u[u,:] -= eta * (-2 * error * self.q_i[i,:] + 2 * lmbd * self.p_u[u,:])
+        self.ap_u[u,:] -= eta * (-2 * error * self.q_i[i,:] * self.dev(u,t) + 2 * lmbd\
             * self.p_u[u,:])
-        self.q_i[i,:] += eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
+        self.q_i[i,:] -= eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
 
     def save(self):
         np.save(conf.TEMPORAL_DYNAMICS.FILES.MU, self.mu)
