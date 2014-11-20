@@ -8,10 +8,15 @@ def save_list():
     pre.save_ratings_list('../training_set')
 
 def temporal_dynamics():
-    ratings = load_ratings_list()
+    ratings = pre.load_ratings_list()
     print "DATA READ DONE"
-    td.learn_model(ratings, conf.TEMPORAL_DYNAMICS.ETA)
+    params = td.learn_model(ratings, conf.TEMPORAL_DYNAMICS.ETA, conf.NETFLIX.TRAINING.USERS,\
+     conf.NETFLIX.TRAINING.MOVIES_END - conf.NETFLIX.TRAINING.MOVIES_START )
     print "LEARN DONE"
+    params.save()
+    print "SAVE DONE"
+
+temporal_dynamics()
 # print "Reading Ratings Matrix"
 # R = sp.csr_matrix(io.mmread(conf.FILES.RATINGS))
 # R = sp.coo_matrix(R[0:50000, :])

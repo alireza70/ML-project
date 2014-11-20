@@ -45,11 +45,19 @@ class TemporalDynamicsParams:
             * self.p_u[u,:])
         self.q_i[i,:] -= eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
 
+    def save(self):
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.MU, self.mu)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.B_U, self.b_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.B_I, self.b_i)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.B_IBIN, self.b_iBin)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.Q_I, self.q_i)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.P_U, self.p_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.AP_U, self.ap_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.A_U, self.a_u)
+        np.save(conf.TEMPORAL_DYNAMICS.FILES.T_U, self.t_u)
 
 
-def learn_model(ratings, eta, params = None):
-    users = conf.DATASET.TRAINING.USERS
-    items = conf.DATASET.TRAINING.MOVIES_END - conf.DATASET.TRAINING.MOVIES_START
+def learn_model(ratings, eta, users, items, params = None):
     if params is None:
         params = TemporalDynamicsParams(users, items, conf.TEMPORAL_DYNAMICS.RANK)
 
