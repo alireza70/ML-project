@@ -7,13 +7,13 @@ class TemporalDynamicsParams:
     def __init__(self, users, items, f):
         self.cnt = 0
         self.mu = 0
-        self.b_u = sp.lil_matrix((users, 1))
-        self.b_i = sp.lil_matrix((items, 1))
-        self.b_iBin = sp.lil_matrix((items, conf.TEMPORAL_DYNAMICS.BINS_COUNT))
-        self.q_i = sp.lil_matrix((items, f))
-        self.p_u = sp.lil_matrix((users, f))
-        self.ap_u = sp.lil_matrix((users, f))
-        self.a_u = sp.lil_matrix((users, 1))
+        self.b_u = np.zeros((users, 1))
+        self.b_i = np.zeros((items, 1))
+        self.b_iBin = np.zeros((items, conf.TEMPORAL_DYNAMICS.BINS_COUNT))
+        self.q_i = np.zeros((items, f))
+        self.p_u = np.zeros((users, f))
+        self.ap_u = np.zeros((users, f))
+        self.a_u = np.zeros((users, 1))
         self.t_u = np.zeros((users, 1))
 
     def dev(self, u, t):
@@ -22,12 +22,12 @@ class TemporalDynamicsParams:
 
     def value(self, u, i, t):
         return float(self.mu + self.b_u[u,0] + self.a_u[u,0]*self.dev(u,t)\
-            + self.b_i[i,0] + self.b_iBin[i,get_bin(t)] + ( self.q_i[i,:] * \
-            (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T ).todense())
+            + self.b_i[i,0] + self.b_iBin[i,get_bin(t)] + ( self.q_i[i,:].dot( \
+            (self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)).T )) )
 
     def update(self, u, i, r, t, eta, lmbd):
         if self.cnt % 1000 == 0:
-            print "Updaing on point ", self.cnt
+            print "ON DATAPOINT ", self.cnt
         self.cnt += 1
         error = (r - self.value(u,i,t))
         pref = self.p_u[u,:] + self.ap_u[u,:]*self.dev(u,t)
@@ -39,29 +39,38 @@ class TemporalDynamicsParams:
             * self.b_iBin[i,get_bin(t)])
         self.a_u[u,0] -= eta * (-2 * error * self.dev(u,t) + 2 * lmbd\
             * self.a_u[u,0])
-        self.p_u[u,:] = self.p_u[u,:] - eta * (-2 * error * self.q_i[i,:] + 2 * lmbd * self.p_u[u,:])
-        self.ap_u[u,:] = self.ap_u[u,:] - eta * (-2 * error * self.q_i[i,:] * self.dev(u,t) + 2 * lmbd\
+
+        self.p_u[u,:] -= eta * (-2 * error * self.q_i[i,:] + 2 * lmbd * self.p_u[u,:])
+        self.ap_u[u,:] -= eta * (-2 * error * self.q_i[i,:] * self.dev(u,t) + 2 * lmbd\
             * self.p_u[u,:])
-        self.q_i[i,:] = self.q_i[i,:] - eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
+        self.q_i[i,:] -= eta * (-2 * error * pref + 2 * lmbd * self.q_i[i,:])
 
 
 
-def learn_model(R, T, eta, params = None):
-    users, items = R.shape
+def learn_model(ratings, eta, params = None):
+    users = conf.DATASET.TRAINING.USERS
+    items = conf.DATASET.TRAINING.MOVIES_END - conf.DATASET.TRAINING.MOVIES_START
     if params is None:
         params = TemporalDynamicsParams(users, items, conf.TEMPORAL_DYNAMICS.RANK)
 
-    Tcsr = sp.csr_matrix(T)
+    print "INITIALIZING TIMES"
+    cnt = 0
+    rates = np.zeros(users)
+    for u, i, r, t in ratings:
+        cnt += 1
+        if cnt%1000 == 0:
+            print "ON DATAPOINT", cnt
+        params.t_u[u] += t
+        rates[u] += 1
 
-    for u in range(0,users):
-        params.t_u[u] = Tcsr[u,:].data.mean()
-        if np.isnan(params.t_u[u]):
-            params.t_u[u] = 0
+    for u in range(users):
+        params.t_u[u] = 0 if rates[u] == 0 else params.t_u[u] / rates[u]
 
+    print "LEARNING PARAMETERS"
     import sys
     for _ in range(0, conf.TEMPORAL_DYNAMICS.NSTEP):
         print "ITERATION ", _
-        for u, i, r, t in zip(R.row, R.col, R.data, T.data):
+        for u, i, r, t in ratings:
             params.update(u, i, r, t, eta, conf.TEMPORAL_DYNAMICS.LAMBDA)
         params.cnt = 0
 
