@@ -2,8 +2,7 @@ class NETFLIX:
     SHUFFLE_TRESHOLD = 1000000
     class TRAINING:
         USERS = 480189
-        MOVIES_START = 0
-        MOVIES_END = 17770
+        MOVIES = 17770
 
 class MOVIES_LEN:
     class FILES:
@@ -22,8 +21,8 @@ class MATRIX_FAC:
     LAMBDA = 0.02
     ALPHA = 0.002
     NSTEP = 20
-    K = 250 
-    
+    K = 250
+
 
 class BASE_NEIGHBOURHOOD:
     LAMBDA2 = 100

@@ -22,9 +22,9 @@ def matrix_factorization(Train_Data, P, Q,BU , BI , ave_rate, K):
     ''' X is a sparse matrix '''
     mf = CF.MATRIX_FAC()
     #SX= sp.coo_matrix(X)
-    
+
 #Temp = sp.lil_matrix(X.shape)
-    
+
 
     '''
     for iteration in range(mf.NSTEP):
@@ -33,12 +33,12 @@ def matrix_factorization(Train_Data, P, Q,BU , BI , ave_rate, K):
                 eij = v - P[i,:].dot(Q[j,:].T)
                 P[i,k] = P[i,k] + mf.ALPHA * (2 * eij * Q[j,k] - mf.LAMBDA * P[i,k])
                 Q[j,k] = Q[j,k] + mf.ALPHA * (2 * eij * P[i,k] - mf.LAMBDA * Q[j,k])
-                 
+
     '''
-        
+
     for iteration in range(mf.NSTEP):
             print "iteration : ", iteration
-            for i,j,v in Train_Data:
+            for i,j,v,t in Train_Data:
                 eij = v - P[i,:].dot(Q[j,:].T) - BU[i,0] - BI[j,0] - ave_rate
                 ave_rate = ave_rate + mf.ALPHA * ( 2 * eij )
                 BU[i,0] = BU[i,0] + mf.ALPHA * ( 2 *  eij - mf.LAMBDA * BU[i,0] )
@@ -50,14 +50,14 @@ def matrix_factorization(Train_Data, P, Q,BU , BI , ave_rate, K):
 import scipy.io as io
 
 def Learn (Train_Data,N,M):
-    ''''X = [ 
+    ''''X = [
          [4,2,3,4],
          [3,1,0,2],
          [4,2,4,0],
          [5,4,3,0],
          [2,1,0,3]
         ]
-    
+
     X= sp.coo_matrix(X)
     Train_Data = []
     for i,j,v in zip(X.row,X.col,X.data):
@@ -74,23 +74,23 @@ def Learn (Train_Data,N,M):
     ave_rate = 0;
     print "Start to Learn"
     nP, nQ,BU,BI,ave_rate = matrix_factorization(Train_Data, P, Q, BU, BI , ave_rate ,  K)
-    
+
     np.save("userMat",nP)
     np.save("MovieMat",nQ)
     np.save("UserBias",BU)
     np.save("MovieBias",BI)
     np.save("average",ave_rate)
-    
+
     #Whole_BU = BU*np.ones((1,N))
-    #Whole_BI = np.ones ((M,1)) * BI.T 
-    
+    #Whole_BI = np.ones ((M,1)) * BI.T
+
 
     #RR = nP.dot(nQ.T) + ave_rate + Whole_BI + Whole_BU
     #print RR
-    
+
     rmse = 0
-    
-    for u, i, r in Train_Data:
+
+    for u, i, r,t in Train_Data:
         rmse += (float(nP[u,:].dot(nQ[i,:].T)+ave_rate+BU[u,0]+BI[i,0]-r))**2
     rmse /= len(Train_Data)
     rmse = np.sqrt(rmse)

@@ -6,6 +6,7 @@ import conf
 import scipy.sparse as sp
 import random as rnd
 import numpy as np
+import SGDMFBiased as SGD
 
 def save_list():
     pre.save_ratings_list('../training_set')
@@ -48,7 +49,15 @@ def temporal_dynamics_movies_len_test():
     err = np.sqrt(err)
     print "RMSE =", err
 
-temporal_dynamics_movies_len()
+def basic_mf():
+    ratings = pre.load_ratings_list()
+    print "DATA READ DONE"
+    SGD.Learn(ratings, conf.NETFLIX.TRAINING.USERS,conf.NETFLIX.TRAINING.MOVIES)
+    print "LEARN DONE"
+    params.save()
+    print "SAVE DONE"
+basic_mf()
+#temporal_dynamics_movies_len()
 # print "Reading Ratings Matrix"
 # R = sp.csr_matrix(io.mmread(conf.FILES.RATINGS))
 # R = sp.coo_matrix(R[0:50000, :])
