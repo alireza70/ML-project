@@ -1,8 +1,11 @@
 import netflix.input_process as pre
+import movies_len.input_process as mpre
 import learn.temporal_dynamics as td
 import scipy.io as io
 import conf
 import scipy.sparse as sp
+import random as rnd
+import numpy as np
 
 def save_list():
     pre.save_ratings_list('../training_set')
@@ -16,7 +19,36 @@ def temporal_dynamics():
     params.save()
     print "SAVE DONE"
 
-temporal_dynamics()
+def temporal_dynamics_movies_len():
+    print "READING"
+    ratings = []
+    for u, i, r, t in mpre.get_ratings('../ml/u.data'):
+        ratings.append( (u, i, r, t) )
+    rnd.shuffle(ratings)
+    print "DATA READ DONE"
+    params = td.learn_model(ratings, conf.TEMPORAL_DYNAMICS.ETA,\
+    conf.MOVIES_LEN.TRAINING.USERS, conf.MOVIES_LEN.TRAINING.MOVIES )
+    print "LEARN DONE"
+    params.save()
+    print "SAVE DONE"
+
+def temporal_dynamics_movies_len_test():
+    print "LOADING PARAMETERS"
+    params = td.TemporalDynamicsParams()
+    params.load()
+    print "PARAMETERS LOADED"
+
+    cnt = 0
+    err = 0
+    for u, i, r, t in mpre.get_ratings('../ml/u.data'):
+        rh = params.value(u, i, t)
+        err += (r-rh)**2
+        cnt += 1
+    err /= cnt
+    err = np.sqrt(err)
+    print "RMSE =", err
+
+temporal_dynamics_movies_len()
 # print "Reading Ratings Matrix"
 # R = sp.csr_matrix(io.mmread(conf.FILES.RATINGS))
 # R = sp.coo_matrix(R[0:50000, :])

@@ -6,6 +6,8 @@ class NETFLIX:
         MOVIES_END = 17770
 
 class MOVIES_LEN:
+    class FILES:
+        RATINGS_LIST = 'data/movies/ratings.npy'
     class TRAINING:
         USERS = 943
         MOVIES = 1682
