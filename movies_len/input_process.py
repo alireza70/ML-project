@@ -1,3 +1,4 @@
+import numpy as np
 import random as rnd
 import conf
 def get_ratings(filePath):
@@ -18,8 +19,8 @@ def get_ratings(filePath):
 
 def save_ratings_list(filePath):
     ratings = []
-    for u, r, i, t in get_ratings(filePath):
-        ratings.append( (u, r, i, t) )
+    for u, i, r, t in get_ratings(filePath):
+        ratings.append( (u, i, r, t) )
     rnd.shuffle(ratings)
     np.save(conf.MOVIES_LEN.FILES.RATINGS_LIST, ratings)
 
