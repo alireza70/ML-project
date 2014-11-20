@@ -1,15 +1,17 @@
-from netflix.merge import merge_matrices
-from netflix.input_process import load_ratings_list
+import netflix.input_process as pre
 import learn.temporal_dynamics as td
 import scipy.io as io
 import conf
 import scipy.sparse as sp
 
-ratings = load_ratings_list()
-print len(ratings)
-print "DATA READ DONE"
-td.learn_model(ratings, conf.TEMPORAL_DYNAMICS.ETA)
-print "LEARN DONE"
+def save_list():
+    pre.save_ratings_list('../training_set')
+
+def temporal_dynamics():
+    ratings = load_ratings_list()
+    print "DATA READ DONE"
+    td.learn_model(ratings, conf.TEMPORAL_DYNAMICS.ETA)
+    print "LEARN DONE"
 # print "Reading Ratings Matrix"
 # R = sp.csr_matrix(io.mmread(conf.FILES.RATINGS))
 # R = sp.coo_matrix(R[0:50000, :])
